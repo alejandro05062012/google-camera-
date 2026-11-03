@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Ultra Camera Pro: experiencia de cámara premium en el navegador." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((reg) => reg.unregister()));
+      }
+      if ('caches' in window) {
+        caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)));
+      }
+    </script>
+    <title>Ultra Camera Pro</title>
+  </head>
+  <body>
+    <div id="app" class="app">
+      <header class="topbar">
+        <div class="topbar-group">
+          <button id="flashBtn" type="button" class="pill pill-icon" aria-label="Flash">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+          </button>
+          <button id="hdrBtn" type="button" class="pill">HDR</button>
+          <button id="timerBtn" type="button" class="pill pill-icon" aria-label="Temporizador">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/></svg>
+            <span id="timerValue" class="pill-value"></span>
+          </button>
+        </div>
+        <div class="topbar-group topbar-end">
+          <div class="look-picker" id="lookPicker">
+            <button id="lookBtn" type="button" class="pill look-btn" aria-haspopup="true" aria-expanded="false" aria-controls="lookMenu">
+              <span id="lookLabel">Neutral</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div id="lookMenu" class="look-menu hidden">
+              <p class="look-group">Leica</p>
+              <button type="button" class="look-item" data-profile="authentic"><span class="look-name">Auténtico</span><span class="look-desc">Más contraste y viñeteo, menos nitidez. 4:3 sin HDR</span></button>
+              <button type="button" class="look-item" data-profile="vibrant"><span class="look-name">Vibrante</span><span class="look-desc">Colores intensos y luminosos. 4:3 con HDR auto</span></button>
+              <p class="look-group">Hasselblad</p>
+              <button type="button" class="look-item" data-profile="xpan"><span class="look-name">XPan</span><span class="look-desc">Panorámico 65:24 y color natural. HDR auto</span></button>
+              <p class="look-group">Zeiss</p>
+              <button type="button" class="look-item" data-profile="zeiss"><span class="look-name">Natural</span><span class="look-desc">Color neutro y piel fiel. 4:3 con HDR auto</span></button>
+              <p class="look-group">Sin marca</p>
+              <button type="button" class="look-item" data-profile="gcam"><span class="look-name">Neutral</span><span class="look-desc">Sin estilo de color. Formato completo</span></button>
+            </div>
+          </div>
+        <button id="settingsBtn" type="button" class="icon-btn" aria-label="Abrir controles">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        </div>
+      </header>
+
+      <main id="stage" class="stage">
+        <div id="viewport" class="viewport">
+          <canvas id="view"></canvas>
+          <svg id="grid" class="grid" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div id="level" class="level hidden" aria-hidden="true"><span class="level-line"></span></div>
+          <div id="reticle" class="reticle" aria-hidden="true"></div>
+          <div id="evBadge" class="ev-badge">0.0 EV</div>
+          <div id="flash" class="flash" aria-hidden="true"></div>
+          <div id="countdown" class="countdown hidden" aria-live="assertive"></div>
+          <div id="progress" class="progress hidden" role="status">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="progress-track" cx="60" cy="60" r="48" />
+              <circle id="progressArc" class="progress-arc" cx="60" cy="60" r="48" />
+            </svg>
+            <p id="progressText" class="progress-title"></p>
+            <p id="progressSub" class="progress-sub"></p>
+          </div>
+          <div id="recBadge" class="rec-badge hidden">
+            <span class="rec-dot"></span><span id="recTime">00:00</span>
+          </div>
+        </div>
+
+        <div id="hist" class="hist" title="Cambiar histograma">
+          <canvas id="histCanvas" width="192" height="72"></canvas>
+          <span id="histLabel" class="hist-label">RGB</span>
+        </div>
+
+        <div id="pip" class="pip hidden">
+          <canvas id="pipCanvas" width="160" height="90"></canvas>
+          <span class="pip-tag">Mapa 200X</span>
+        </div>
+
+        <p id="resultTag" class="result-tag"></p>
+        <p id="sourceNote" class="source-note hidden"></p>
+      </main>
+
+      <section class="controls">
+        <div class="lens-row" id="lensDial" role="group" aria-label="Ópticas">
+          <button type="button" data-lens="uw">.6x</button>
+          <button type="button" data-lens="wide">1x</button>
+          <button type="button" data-lens="tele">3x</button>
+          <button type="button" data-lens="peri">10x</button>
+          <button type="button" data-lens="super" class="lens-super">200X</button>
+          <span id="zoomReadout" class="zoom-readout">1.0x</span>
+        </div>
+
+        <nav class="modes" id="modes" aria-label="Modos de captura">
+          <button type="button" data-mode="normal">Normal</button>
+          <button type="button" data-mode="pro">Pro</button>
+          <button type="button" data-mode="portrait">Retrato</button>
+          <button type="button" data-mode="night">Noche</button>
+          <button type="button" data-mode="astro">Astro</button>
+          <button type="button" data-mode="macro">Macro</button>
+          <button type="button" data-mode="video">Video</button>
+        </nav>
+
+        <div class="shutter-row">
+          <button id="galleryBtn" type="button" class="thumb" aria-label="Ver última captura">
+            <img id="thumbImg" alt="" hidden />
+            <span id="thumbEmpty" class="thumb-empty"></span>
+          </button>
+          <button id="shutterBtn" type="button" class="shutter" aria-label="Disparar">
+            <span class="shutter-core"></span>
+          </button>
+          <button id="flipBtn" type="button" class="icon-btn" aria-label="Cambiar cámara">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <div id="controlsModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Controles">
+        <div class="modal-backdrop" data-close></div>
+        <div class="sheet controls-sheet">
+          <header class="sheet-header">
+            <h2>Controles</h2>
+            <button type="button" class="icon-btn" data-close aria-label="Cerrar">&times;</button>
+          </header>
+
+          <div class="settings-body">
+            <section class="settings-group">
+              <h3>Exposición</h3>
+              <div class="row">
+                <label for="evSlider">Compensación <output id="evOut"></output></label>
+                <input id="evSlider" type="range" min="-3" max="3" step="0.1" />
+              </div>
+            </section>
+
+            <section class="settings-group">
+              <h3>Encuadre y ayudas</h3>
+              <div class="seg" id="aspectSeg" role="group" aria-label="Relación de aspecto">
+                <button type="button" data-aspect="1:1">1:1</button>
+                <button type="button" data-aspect="4:3">4:3</button>
+                <button type="button" data-aspect="16:9">16:9</button>
+                <button type="button" data-aspect="xpan">XPan</button>
+                <button type="button" data-aspect="full">Full</button>
+              </div>
+              <div class="tool-toggles">
+                <button id="gridBtn" type="button" class="toggle">Rejilla Off</button>
+                <button id="peakBtn" type="button" class="toggle">Peaking</button>
+                <button id="zebraBtn" type="button" class="toggle">Zebra</button>
+                <button id="levelBtn" type="button" class="toggle">Nivel</button>
+              </div>
+            </section>
+
+            <section class="settings-group">
+              <h3>Estilo de color</h3>
+              <div class="profiles" id="profiles" role="group" aria-label="Perfil de color">
+                <button type="button" data-profile="authentic">Leica Auténtico</button>
+                <button type="button" data-profile="vibrant">Leica Vibrante</button>
+                <button type="button" data-profile="zeiss">Zeiss Natural</button>
+                <button type="button" data-profile="xpan">Hasselblad XPan</button>
+                <button type="button" data-profile="gcam">Neutral</button>
+              </div>
+            </section>
+
+            <section id="panelPro" class="settings-group hidden">
+              <h3>Manual</h3>
+              <div class="row">
+                <label for="mfSlider">Enfoque <output id="mfOut"></output></label>
+                <input id="mfSlider" type="range" min="0" max="1" step="0.01" />
+              </div>
+              <div class="row">
+                <label for="shutterSlider">Obturador <output id="shutterOut"></output></label>
+                <input id="shutterSlider" type="range" min="0" max="1" step="0.001" />
+              </div>
+              <div class="row">
+                <label for="isoSlider">ISO <output id="isoOut"></output></label>
+                <input id="isoSlider" type="range" min="0" max="1" step="0.001" />
+              </div>
+              <div class="row">
+                <label for="wbSlider">Balance de blancos <output id="wbOut"></output></label>
+                <input id="wbSlider" type="range" min="2000" max="8000" step="50" />
+              </div>
+              <div class="presets" id="wbPresets">
+                <button type="button" data-kelvin="5500">Soleado</button>
+                <button type="button" data-kelvin="6500">Nublado</button>
+                <button type="button" data-kelvin="2900">Incandescente</button>
+                <button type="button" data-kelvin="4000">Fluorescente</button>
+              </div>
+            </section>
+
+            <section id="panelPortrait" class="settings-group hidden">
+              <h3>Retrato</h3>
+              <div class="row">
+                <label for="apertureSlider">Apertura simulada <output id="apertureOut"></output></label>
+                <input id="apertureSlider" type="range" min="0" max="1" step="0.01" />
+              </div>
+              <div class="presets" id="lightingSeg">
+                <button type="button" data-light="natural">Natural</button>
+                <button type="button" data-light="studio">Studio</button>
+                <button type="button" data-light="contour">Contour</button>
+                <button type="button" data-light="stage">Stage Light</button>
+              </div>
+            </section>
+
+            <section id="panelNight" class="settings-group hidden">
+              <h3>Noche</h3>
+              <p class="panel-note">Combina varias tramas para reducir el ruido y levantar las sombras. Mantenga el dispositivo quieto al disparar.</p>
+            </section>
+
+            <section id="panelAstro" class="settings-group hidden">
+              <h3>Astro</h3>
+              <div class="row-inline">
+                <span class="row-label">Duración</span>
+                <div class="seg" id="astroSeconds">
+                  <button type="button" data-seconds="5">5 s</button>
+                  <button type="button" data-seconds="15">15 s</button>
+                  <button type="button" data-seconds="30">30 s</button>
+                </div>
+              </div>
+              <div class="row-inline">
+                <span class="row-label">Enfoque infinito</span>
+                <button id="infinityBtn" type="button" class="toggle" aria-pressed="false">Bloquear</button>
+              </div>
+              <div class="row-inline">
+                <span class="row-label">Modo</span>
+                <div class="seg" id="astroStack">
+                  <button type="button" data-stack="mean">Acumulación</button>
+                  <button type="button" data-stack="trails">Star Trails</button>
+                </div>
+              </div>
+            </section>
+
+            <section id="panelMacro" class="settings-group hidden">
+              <h3>Macro</h3>
+              <p class="panel-note">Enfoque cercano con recorte 2.5x y fondo desenfocado. Acerque el objeto a unos centímetros de la lente.</p>
+            </section>
+
+            <section id="panelVideo" class="settings-group hidden">
+              <h3>Video</h3>
+              <div class="row-inline">
+                <span class="row-label">Calidad</span>
+                <select id="videoProfile" class="select-input" aria-label="Calidad de video">
+                  <option value="4k30">4K 30 FPS</option>
+                  <option value="4k60">4K 60 FPS</option>
+                  <option value="8k24">8K 24 FPS</option>
+                  <option value="slow120">Cámara lenta 120</option>
+                  <option value="slow240">Cámara lenta 240</option>
+                </select>
+              </div>
+              <div class="row-inline">
+                <span class="row-label">Estabilización</span>
+                <div class="seg" id="stabSeg" role="group" aria-label="Estabilización">
+                  <button type="button" data-stab="off">Off</button>
+                  <button type="button" data-stab="standard">Estándar</button>
+                  <button type="button" data-stab="super">Súper estable</button>
+                </div>
+              </div>
+              <p class="panel-note">Súper estable recorta el encuadre y suaviza el movimiento con el giroscopio para un video más estable.</p>
+            </section>
+          </div>
+
+          <footer class="sheet-footer">
+            <button id="techSettingsBtn" type="button" class="btn-secondary">Ajustes técnicos</button>
+          </footer>
+        </div>
+      </div>
+
+      <div id="galleryModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Galería">
+        <div class="modal-backdrop" data-close></div>
+        <div class="sheet gallery-sheet">
+          <header class="sheet-header">
+            <h2>Galería</h2>
+            <button type="button" class="icon-btn" data-close aria-label="Cerrar">&times;</button>
+          </header>
+          <div id="galleryMedia" class="gallery-media"></div>
+          <div id="galleryStrip" class="gallery-strip"></div>
+          <div class="gallery-actions">
+            <button id="galleryDownload" type="button" class="btn-secondary">Descargar</button>
+            <button id="galleryShare" type="button" class="btn-primary">Compartir</button>
+          </div>
+          <h3 class="sheet-title">Datos técnicos</h3>
+          <dl id="galleryMeta" class="meta-list"></dl>
+          <h3 class="sheet-title">Historial guardado</h3>
+          <ul id="galleryHistory" class="history-list"></ul>
+        </div>
+      </div>
+
+      <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Ajustes técnicos">
+        <div class="modal-backdrop" data-close></div>
+        <div class="sheet settings-sheet">
+          <header class="sheet-header">
+            <h2>Ajustes técnicos</h2>
+            <button type="button" class="icon-btn" data-close aria-label="Cerrar">&times;</button>
+          </header>
+
+          <div class="settings-body">
+            <section class="settings-group">
+              <h3>Fotografía</h3>
+              <label class="field">
+                <span>Formato de guardado</span>
+                <select data-setting="format">
+                  <option value="jpeg">JPEG</option>
+                  <option value="png">PNG</option>
+                  <option value="raw">RAW + JPEG (simulado)</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Calidad de compresión</span>
+                <select data-setting="quality" data-type="number">
+                  <option value="0.85">85%</option>
+                  <option value="0.95">95%</option>
+                  <option value="1">100%</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Reducción de ruido por IA</span>
+                <select data-setting="nr">
+                  <option value="bajo">Bajo</option>
+                  <option value="medio">Medio</option>
+                  <option value="ultra">Ultra</option>
+                </select>
+              </label>
+            </section>
+
+            <section class="settings-group">
+              <h3>Funcionales</h3>
+              <label class="field">
+                <span>Marca de agua</span>
+                <input data-setting="watermark" type="text" maxlength="60" />
+              </label>
+              <label class="toggle-row">
+                <span>Sonido de obturador</span>
+                <input data-setting="shutterSound" type="checkbox" class="switch-input" />
+              </label>
+              <label class="toggle-row">
+                <span>Guardar ubicación</span>
+                <input data-setting="geotag" type="checkbox" class="switch-input" />
+              </label>
+              <label class="toggle-row">
+                <span>Auto-HDR</span>
+                <input data-setting="autoHdr" type="checkbox" class="switch-input" />
+              </label>
+              <label class="field">
+                <span>Cámara</span>
+                <select id="sCamera" data-setting="cameraId"></select>
+              </label>
+            </section>
+
+            <section class="settings-group">
+              <h3>Calibración avanzada <span class="tag">Experimental</span></h3>
+              <label class="field">
+                <span>Afilado de detalles</span>
+                <input data-setting="sharpness" data-type="number" type="range" min="0" max="1" step="0.05" />
+              </label>
+              <label class="toggle-row">
+                <span>Corrección de matriz de ruido</span>
+                <input data-setting="noiseModel" type="checkbox" class="switch-input" />
+              </label>
+              <label class="field">
+                <span>Sensor de referencia</span>
+                <select data-setting="sensorId">
+                  <option value="auto">Automático</option>
+                  <option value="hm3-108mp">HM3 108 MP (S21 Ultra)</option>
+                  <option value="gn1-50mp">GN1 50 MP (Principal)</option>
+                  <option value="imx-alt">IMX586 48 MP (Alternativo)</option>
+                </select>
+              </label>
+            </section>
+          </div>
+
+          <footer class="sheet-footer">
+            <button id="settingsSave" type="button" class="btn-primary">Guardar ajustes</button>
+          </footer>
+        </div>
+      </div>
+
+      <div id="toast" class="toast-region" aria-live="polite"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
